@@ -7,14 +7,13 @@ import urllib.request
 import pickle
 import pandas as pd
 
-
 # -------------------------------------------------------------
 # AUTOMATED DATA & MODEL DOWNLOAD PIPELINE 
 # -------------------------------------------------------------
 os.makedirs('models', exist_ok=True)
 os.makedirs('data/processed', exist_ok=True)
 
-# FORCE WIPE CORRUPTED TEMPORARY FILES IF THEY ARE EMPTY
+# FORCE WIPE CORRUPTED TEMPORARY FILES IF THEY ARE EMPTY OR INVALID
 for bad_file in ['models/jobs_database.csv', 'models/job_vectors.pkl']:
     if os.path.exists(bad_file) and os.path.getsize(bad_file) < 100:
         os.remove(bad_file)
@@ -31,7 +30,7 @@ def download_from_drive(file_id, save_path):
 # 1. Download your TF-IDF vectorizer model
 download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
 
-# 2. DOWNLOAD THE JOB DATASET 
+# 2. DOWNLOAD THE JOB DATASET (Saved exactly where utils/recommend.py looks for it!)
 download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'models/jobs_database.csv')
 
 # -------------------------------------------------------------
@@ -40,14 +39,13 @@ download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'models/jobs_database.c
 if not os.path.exists('models/job_vectors.pkl'):
     with st.spinner("Initializing AI vector systems on first boot..."):
         try:
-            # Load assets safely
             with open("models/tfidf_vectorizer.pkl", "rb") as f:
                 tfidf = pickle.load(f)
             
-            # Load our downloaded job descriptions dataset
-            df = pd.read_csv("data/processed/job_processed.csv")
+            # Load from the corrected path
+            df = pd.read_csv("models/jobs_database.csv")
             
-            # Smart scan for job text column names (looks for job description or cleaned data fields)
+            # Smart scan for job text column names
             possible_columns = ['job_description', 'description', 'cleaned_job', 'job_text', 'cleaned_resume', 'resume_text']
             text_column = None
             for col in possible_columns:
@@ -56,19 +54,14 @@ if not os.path.exists('models/job_vectors.pkl'):
                     break
             
             if text_column is None:
-                text_column = df.columns[-1]  # Fallback to the last column if no match
+                text_column = df.columns[-1]
             
-            # Convert text column safely to clean strings
             df[text_column] = df[text_column].fillna("").astype(str)
-            
-            # Generate your vector matrix instantly directly on the cloud server
             job_vectors = tfidf.transform(df[text_column])
             
-            # Save the file out so this step is skipped on every reload
             with open("models/job_vectors.pkl", "wb") as f:
                 pickle.dump(job_vectors, f)
                 
-            st.success("🤖 AI Vector Matrix initialized successfully!")
         except Exception as e:
             st.error(f"Error creating local vector matrix: {e}")
 
@@ -159,7 +152,12 @@ if uploaded_file is not None:
     # ===============================
     st.subheader("🧠 SmartHire AI Workflow")
     st.info("""
-📄 Resume Upload  ➡  🧹 Resume Cleaning  ➡  🛠 Skill Extraction  ➡  📊 TF-IDF Vectorization  ➡  🤖 Cosine Similarity Matching  ➡  🎯 Top Job Recommendations
+📄 Resume Upload  
+            ➡  🧹 Resume Cleaning 
+             ➡  🛠 Skill Extraction  
+            ➡  📊 TF-IDF Vectorization  
+            ➡  🤖 Cosine Similarity Matching  
+            ➡  🎯 Top Job Recommendations
 """)
 
     st.divider()
@@ -225,9 +223,25 @@ if uploaded_file is not None:
                     else:
                         recommendations["skills"] = recommendations["skills"].astype(str)
 
+                    # -------------------------------------------------------------
+                    # PLOTLY PIE CHART COLUMN ALIGNMENT FIX
+                    # -------------------------------------------------------------
+                    possible_title_cols = ['job_title', 'Job Title', 'title', 'Role', 'position']
+                    found_title_col = None
+                    for col in possible_title_cols:
+                        if col in recommendations.columns:
+                            found_title_col = col
+                            break
+                    
+                    if found_title_col and found_title_col != 'job_title':
+                        recommendations['job_title'] = recommendations[found_title_col]
+                    elif 'job_title' not in recommendations.columns:
+                        recommendations['job_title'] = "Matching Position"
+
                     st.success("✅ Profile Analysis Matrix Evaluated!")
                     st.divider()
 
+                    # Render top-level interactive pie chart and cards sequentially from ui.py
                     show_job_boxes(recommendations)
 
 # --------------------------------
