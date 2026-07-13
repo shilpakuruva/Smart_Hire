@@ -22,9 +22,11 @@ def download_from_drive(file_id, save_path):
         except Exception as e:
             st.error(f"Error downloading {save_path}: {e}")
 
-# Download the vectorizer and processed dataset (These are small/medium and work perfectly via urllib)
+# 1. Download your TF-IDF vectorizer model
 download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
-download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'data/processed/resume_processed.csv')
+
+# 2. DOWNLOAD THE JOB DATASET (Make sure this File ID points to your naukri_processed.csv or linkedin_processed.csv on Drive!)
+download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'data/processed/job_processed.csv')
 
 # -------------------------------------------------------------
 # DYNAMIC MATRIX GENERATION (Bypasses Google Drive network freeze)
@@ -35,17 +37,32 @@ if not os.path.exists('models/job_vectors.pkl'):
             # Load assets safely
             with open("models/tfidf_vectorizer.pkl", "rb") as f:
                 tfidf = pickle.load(f)
-            df = pd.read_csv("data/processed/resume_processed.csv")
             
-            # Ensure text columns are clean string formatting
-            df['cleaned_resume'] = df['cleaned_resume'].fillna("").astype(str)
+            # Load our downloaded job descriptions dataset
+            df = pd.read_csv("data/processed/job_processed.csv")
             
-            # Generate vectors instantly on the server
-            job_vectors = tfidf.transform(df['cleaned_resume'])
+            # Smart scan for job text column names (looks for job description or cleaned data fields)
+            possible_columns = ['job_description', 'description', 'cleaned_job', 'job_text', 'cleaned_resume', 'resume_text']
+            text_column = None
+            for col in possible_columns:
+                if col in df.columns:
+                    text_column = col
+                    break
             
-            # Save it so it never has to calculate again
+            if text_column is None:
+                text_column = df.columns[-1]  # Fallback to the last column if no match
+            
+            # Convert text column safely to clean strings
+            df[text_column] = df[text_column].fillna("").astype(str)
+            
+            # Generate your vector matrix instantly directly on the cloud server
+            job_vectors = tfidf.transform(df[text_column])
+            
+            # Save the file out so this step is skipped on every reload
             with open("models/job_vectors.pkl", "wb") as f:
                 pickle.dump(job_vectors, f)
+                
+            st.success("🤖 AI Vector Matrix initialized successfully!")
         except Exception as e:
             st.error(f"Error creating local vector matrix: {e}")
 
