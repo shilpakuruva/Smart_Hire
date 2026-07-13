@@ -7,7 +7,6 @@ import re
 
 # -------------------------------------------------------------
 # AUTOMATED DATA & MODEL DOWNLOAD PIPELINE 
-# (Must run BEFORE custom module imports to prevent FileNotFoundError)
 # -------------------------------------------------------------
 os.makedirs('models', exist_ok=True)
 os.makedirs('data/raw', exist_ok=True)
@@ -16,15 +15,33 @@ os.makedirs('data/processed', exist_ok=True)
 def download_from_drive(file_id, save_path):
     if not os.path.exists(save_path):
         print(f"Downloading {save_path} from Google Drive...")
+        # Large-file confirmation workaround for Google Drive
         url = f"https://docs.google.com/uc?export=download&id={file_id}"
-        urllib.request.urlretrieve(url, save_path)
-        print(f"Successfully downloaded {save_path}!")
+        request = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        
+        try:
+            with urllib.request.urlopen(request) as response:
+                html = response.read().decode('utf-8', errors='ignore')
+                # If Google prompts a virus warning page, grab the confirmation code
+                if "confirm=" in html:
+                    confirm_code = html.split("confirm=")[1].split("&")[0]
+                    url = f"https://docs.google.com/uc?export=download&confirm={confirm_code}&id={file_id}"
+            
+            # Download the final destination file safely
+            urllib.request.urlretrieve(url, save_path)
+            print(f"Successfully downloaded {save_path}!")
+        except Exception as e:
+            print(f"Error downloading {save_path}: {e}")
+            # Fallback to direct download attempt if token checking fails
+            try:
+                urllib.request.urlretrieve(f"https://docs.google.com/uc?export=download&id={file_id}", save_path)
+            except Exception as final_err:
+                st.error(f"Failed to fetch model asset: {save_path}. Ensure it is publicly shared.")
 
 # Download heavy structural pipeline dependencies
 download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
 download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'data/processed/resume_processed.csv')
 download_from_drive('1-H_24SveG9l6bB6Zk8rY7j5p9_b67f_w', 'models/job_vectors.pkl')
-
 # -------------------------------------------------------------
 # NOW IMPORT THE CUSTOM RECOMENDATION MODULES SAFELY
 # -------------------------------------------------------------
