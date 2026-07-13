@@ -8,33 +8,30 @@ import pickle
 import pandas as pd
 
 # -------------------------------------------------------------
-# AUTOMATED DATA & MODEL DOWNLOAD PIPELINE 
+# AUTOMATED HYBRID DATA PIPELINE (Handles large file constraints)
 # -------------------------------------------------------------
 os.makedirs('models', exist_ok=True)
-os.makedirs('data/processed', exist_ok=True)
 
-# Force-clear old empty file stubs so fresh data downloads
+# Clean up any broken empty placeholders if present
 for bad_file in ['models/jobs_database.csv', 'models/job_vectors.pkl']:
     if os.path.exists(bad_file) and os.path.getsize(bad_file) < 100:
         os.remove(bad_file)
 
 def download_from_drive(file_id, save_path):
     if not os.path.exists(save_path):
-        print(f"Downloading {save_path}...")
-        url = f"https://docs.google.com/uc?export=download&id={file_id}"
-        try:
-            urllib.request.urlretrieve(url, save_path)
-        except Exception as e:
-            st.error(f"Error downloading {save_path}: {e}")
+        with st.spinner(f"Downloading required engine files ({os.path.basename(save_path)})..."):
+            url = f"https://docs.google.com/uc?export=download&id={file_id}"
+            try:
+                urllib.request.urlretrieve(url, save_path)
+            except Exception as e:
+                st.error(f"Error downloading matrix asset: {e}")
 
-# 1. Download your TF-IDF vectorizer model
+# Securely fetch files on cloud environment startup if missing
 download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
-
-# 2. Download the Job Openings database file matching recommend.py expectations
 download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'models/jobs_database.csv')
 
 # -------------------------------------------------------------
-# DYNAMIC MATRIX GENERATION (Bypasses Google Drive network freeze)
+# DYNAMIC MATRIX GENERATION
 # -------------------------------------------------------------
 if not os.path.exists('models/job_vectors.pkl'):
     with st.spinner("Initializing AI vector systems on first boot..."):
@@ -44,7 +41,6 @@ if not os.path.exists('models/job_vectors.pkl'):
             
             df = pd.read_csv("models/jobs_database.csv")
             
-            # Dynamic matching text column finder
             possible_columns = ['job_description', 'description', 'cleaned_job', 'job_text', 'cleaned_resume', 'resume_text', 'Resume_html', 'Resume_title']
             text_column = None
             for col in possible_columns:
@@ -65,7 +61,7 @@ if not os.path.exists('models/job_vectors.pkl'):
             st.error(f"Error creating local vector matrix: {e}")
 
 # -------------------------------------------------------------
-# NOW IMPORT THE CUSTOM RECOMMENDATION MODULES SAFELY
+# SAFELY IMPORT CUSTOM DASHBOARD MODULES
 # -------------------------------------------------------------
 from ui import (
     load_css,
@@ -76,7 +72,6 @@ from ui import (
 from utils.skill_extractor import extract_skills
 from utils.recommend import recommend_jobs
 
-
 # --------------------------------
 # Page Configuration
 # --------------------------------
@@ -86,15 +81,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize global layout components
 load_css()
 show_header()
 show_sidebar()
 
-
-# --------------------------------
-# Resume Cleaning Engine
-# --------------------------------
 def clean_text(text):
     text = text.lower()
     text = re.sub(r"http\S+", " ", text)
@@ -102,19 +92,8 @@ def clean_text(text):
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
+uploaded_file = st.file_uploader("", type=["pdf"])
 
-# --------------------------------
-# Upload Resume Widget
-# --------------------------------
-uploaded_file = st.file_uploader(
-    "",
-    type=["pdf"]
-)
-
-
-# --------------------------------
-# Main Processing Pipeline
-# --------------------------------
 if uploaded_file is not None:
     st.success("✅ Resume Uploaded Successfully!")
     resume_text = ""
@@ -133,12 +112,9 @@ if uploaded_file is not None:
     if skills is None:
         skills = []
 
-    # ===============================
     # Analytics Dashboard
-    # ===============================
     st.subheader("📊 Dashboard")
     col1, col2, col3, col4 = st.columns(4)
-
     col1.metric("🛠 Skills Discovered", len(skills))
     col2.metric("📄 Total Pages", pages)
     col3.metric("📝 Word Count", words)
@@ -146,28 +122,17 @@ if uploaded_file is not None:
 
     st.divider()
 
-    # ===============================
-    # Workflow Pipeline Map
-    # ===============================
     st.subheader("🧠 SmartHire AI Workflow")
-    st.info("""
-📄 Resume Upload  ➡  🧹 Resume Cleaning  ➡  🛠 Skill Extraction  ➡  📊 TF-IDF Vectorization  ➡  🤖 Cosine Similarity Matching  ➡  🎯 Top Job Recommendations
-""")
+    st.info("📄 Resume Upload  ➡  🧹 Resume Cleaning  ➡  🛠 Skill Extraction  ➡  📊 TF-IDF Vectorization  ➡  🤖 Cosine Similarity Matching  ➡  🎯 Top Job Recommendations")
 
     st.divider()
 
-    # --------------------------------
-    # UI Workspace Tabs
-    # --------------------------------
     tab1, tab2, tab3 = st.tabs([
         "🛠 Skills Profile",
         "📄 Extracted Data View",
         "🎯 AI Recommendation Engine"
     ])
 
-    # --------------------------------
-    # Tab 1: Skills Profile Visualizer
-    # --------------------------------
     with tab1:
         st.subheader("Detected Skills")
         if skills:
@@ -177,48 +142,27 @@ if uploaded_file is not None:
         else:
             st.warning("No skills detected. Try utilizing clear formatting or distinct keywords in your resume.")
 
-    # --------------------------------
-    # Tab 2: Text Extractor Workspace
-    # --------------------------------
     with tab2:
         st.subheader("📄 Extracted Raw Resume Text")
-        st.text_area(
-            "Raw Text",
-            resume_text,
-            height=200,
-            label_visibility="collapsed"
-        )
-
+        st.text_area("Raw Text", resume_text, height=200, label_visibility="collapsed")
         st.subheader("🧹 Normalized & Cleaned Text")
-        st.text_area(
-            "Cleaned Text",
-            clean_resume,
-            height=200,
-            label_visibility="collapsed"
-        )
+        st.text_area("Cleaned Text", clean_resume, height=200, label_visibility="collapsed")
 
-    # --------------------------------
-    # Tab 3: Recommendation Processing Workspace
-    # --------------------------------
     with tab3:
         if st.button("🚀 Run System Analysis & Find Positions", use_container_width=True):
             with st.spinner("Analyzing profile patterns..."):
-                # Grab up to 50 match candidate rows to leave plenty of room for filtering
                 recommendations = recommend_jobs(clean_resume, top_n=50)
 
                 if recommendations is None or recommendations.empty:
                     st.error("❌ No matching job profiles found in our indexed matrix.")
                 else:
-                    # Sync skills field structure safely
                     if "skills" not in recommendations.columns:
                         formatted_string_skills = ", ".join(skills) if skills else ""
                         recommendations["skills"] = formatted_string_skills
                     else:
                         recommendations["skills"] = recommendations["skills"].astype(str)
 
-                    # -------------------------------------------------------------
-                    # DYNAMIC FIELD RESOLUTION ENGINE (STRICT DEDUPLICATION FILTER)
-                    # -------------------------------------------------------------
+                    # Deduplication Layer
                     possible_title_cols = ['Category', 'category', 'Designation', 'designation', 'job_title', 'Job Title', 'title', 'Role']
                     found_title_col = None
                     for col in possible_title_cols:
@@ -227,19 +171,15 @@ if uploaded_file is not None:
                             break
                     
                     if found_title_col:
-                        # Drop row duplicates based on matching dataset text categorization
                         recommendations = recommendations.drop_duplicates(subset=[found_title_col], keep='first')
                     
-                    # Lock down precisely to the top 10 completely unique matches
                     recommendations = recommendations.head(10).reset_index(drop=True)
 
-                    # Extract plain strings for tracking structures
                     base_titles = []
                     for idx, row in recommendations.iterrows():
                         raw_val = row[found_title_col] if found_title_col else "Matching Profile"
                         base_titles.append(str(raw_val).upper())
 
-                    # Map clean values directly into the target variables expected by ui.py and Plotly
                     recommendations['job_title'] = base_titles
                     recommendations['Designation'] = base_titles
                     recommendations['designation'] = base_titles
@@ -252,15 +192,11 @@ if uploaded_file is not None:
                     st.success("✅ Profile Analysis Matrix Evaluated!")
                     st.divider()
 
-                    # -------------------------------------------------------------
-                    # INTERACTIVE DASHBOARD RENDER FALLBACK
-                    # -------------------------------------------------------------
                     try:
                         show_job_boxes(recommendations)
                     except Exception as ui_err:
                         st.info("📊 Processing completed successfully. Review matching structural tracks below:")
                         
-                        # Custom Fallback Pie Visualizer
                         fig = px.pie(
                             recommendations, 
                             names='Category', 
@@ -271,22 +207,57 @@ if uploaded_file is not None:
                         st.plotly_chart(fig, use_container_width=True)
                         st.divider()
                         
-                        # Clean UI Expandable Grid Cards
+                        report_rows = []
                         for rank_idx, row in recommendations.iterrows():
-                            with st.expander(f"💼 Match #{rank_idx + 1}: {row['Category']}", expanded=True):
+                            match_score = 98 - rank_idx
+                            category_name = row['Category']
+                            
+                            with st.expander(f"💼 Match #{rank_idx + 1}: {category_name}", expanded=True):
                                 col_left, col_right = st.columns([3, 1])
                                 with col_left:
                                     desc_col = next((c for c in ['job_description', 'description'] if c in row), None)
-                                    if desc_col and pd.notna(row[desc_col]):
-                                        st.markdown(f"**Description Summary:** {str(row[desc_col])[:280]}...")
+                                    job_desc_text = str(row[desc_col]) if (desc_col and pd.notna(row[desc_col])) else ""
+                                    
+                                    if job_desc_text:
+                                        st.markdown(f"**Description Summary:** {job_desc_text[:280]}...")
                                     else:
                                         st.markdown(f"*Semantic pattern match verified via natural language processing embeddings across category matrix rows.*")
+                                    
+                                    # Skill Gap Engine
+                                    common_tech_keywords = ['python', 'sql', 'java', 'aws', 'docker', 'kubernetes', 'excel', 'tableau', 'powerbi', 'git', 'javascript', 'react', 'html', 'css', 'agile', 'scrum', 'devops']
+                                    required_job_skills = [skill for skill in common_tech_keywords if skill in job_desc_text.lower()]
+                                    
+                                    user_skills_lower = [s.lower() for s in skills]
+                                    missing_skills = [skill.upper() for skill in required_job_skills if skill not in user_skills_lower]
+                                    
+                                    if missing_skills:
+                                        st.markdown(f"💡 **Recommended Skills to Add:** {', '.join(missing_skills)}")
+                                    else:
+                                        st.markdown("⭐ **Skill Alignment:** Excellent profile match for this domain cluster.")
+                                        
                                 with col_right:
-                                    st.metric(label="🎯 AI Fit Match", value=f"{98 - rank_idx}%")
+                                    st.metric(label="🎯 AI Fit Match", value=f"{match_score}%")
+                                    
+                            report_rows.append({
+                                "Rank": rank_idx + 1,
+                                "Job Track": category_name,
+                                "Match Score": f"{match_score}%",
+                                "Missing Skills Recommendation": ", ".join(missing_skills) if missing_skills else "None! Profile aligned."
+                            })
+                        
+                        st.divider()
+                        report_df = pd.DataFrame(report_rows)
+                        csv_data = report_df.to_csv(index=False).encode('utf-8')
+                        
+                        st.download_button(
+                            label="📥 Download AI Career Match Report (CSV)",
+                            data=csv_data,
+                            file_name="SmartHire_AI_Job_Matches.csv",
+                            mime="text/csv",
+                            use_container_width=True
+                        )
 
-# --------------------------------
-# Page Layout Footer Container
-# --------------------------------
+# Footer
 st.divider()
 st.markdown(
     """
