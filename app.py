@@ -3,7 +3,7 @@ import streamlit as st
 import pdfplumber
 import plotly.express as px
 import re
-import gdown
+import urllib.request
 import pickle
 import pandas as pd
 
@@ -15,15 +15,19 @@ os.makedirs('data/processed', exist_ok=True)
 
 def download_from_drive(file_id, save_path):
     if not os.path.exists(save_path):
-        print(f"Downloading {save_path} from Google Drive...")
-        gdown.download(id=file_id, output=save_path, quiet=False, fuzzy=True)
+        print(f"Downloading {save_path}...")
+        url = f"https://docs.google.com/uc?export=download&id={file_id}"
+        try:
+            urllib.request.urlretrieve(url, save_path)
+        except Exception as e:
+            st.error(f"Error downloading {save_path}: {e}")
 
-# Download the vectorizer and processed dataset
+# Download the vectorizer and processed dataset (These are small/medium and work perfectly via urllib)
 download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
 download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'data/processed/resume_processed.csv')
 
 # -------------------------------------------------------------
-# DYNAMIC MATRIX GENERATION (Bypasses Google Drive network block)
+# DYNAMIC MATRIX GENERATION (Bypasses Google Drive network freeze)
 # -------------------------------------------------------------
 if not os.path.exists('models/job_vectors.pkl'):
     with st.spinner("Initializing AI vector systems on first boot..."):
@@ -39,9 +43,9 @@ if not os.path.exists('models/job_vectors.pkl'):
             # Generate vectors instantly on the server
             job_vectors = tfidf.transform(df['cleaned_resume'])
             
-            # Save it so it never has to run again
+            # Save it so it never has to calculate again
             with open("models/job_vectors.pkl", "wb") as f:
-                pickle.load = pickle.dump(job_vectors, f)
+                pickle.dump(job_vectors, f)
         except Exception as e:
             st.error(f"Error creating local vector matrix: {e}")
 
@@ -192,9 +196,6 @@ if uploaded_file is not None:
                 if recommendations is None or recommendations.empty:
                     st.error("❌ No matching job profiles found in our indexed matrix.")
                 else:
-                    # -------------------------------------------------------------
-                    # FIXED CRITICAL BUG: Format raw Python array into clean CSV string
-                    # -------------------------------------------------------------
                     if "skills" not in recommendations.columns:
                         formatted_string_skills = ", ".join(skills) if skills else ""
                         recommendations["skills"] = formatted_string_skills
@@ -204,7 +205,6 @@ if uploaded_file is not None:
                     st.success("✅ Profile Analysis Matrix Evaluated!")
                     st.divider()
 
-                    # Render top-level interactive pie chart and cards sequentially from ui.py
                     show_job_boxes(recommendations)
 
 # --------------------------------
