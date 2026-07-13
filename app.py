@@ -13,7 +13,7 @@ import pandas as pd
 os.makedirs('models', exist_ok=True)
 os.makedirs('data/processed', exist_ok=True)
 
-# Force-clear old empty file stubs so fresh data downloads
+# Clean up broken empty placeholders if present
 for bad_file in ['models/jobs_database.csv', 'models/job_vectors.pkl']:
     if os.path.exists(bad_file) and os.path.getsize(bad_file) < 100:
         os.remove(bad_file)
@@ -203,10 +203,7 @@ if uploaded_file is not None:
     with tab3:
         if st.button("🚀 Run System Analysis & Find Positions", use_container_width=True):
             with st.spinner("Analyzing profile patterns..."):
-                recommendations = recommend_jobs(
-                    clean_resume,
-                    top_n=10
-                )
+                recommendations = recommend_jobs(clean_resume, top_n=10)
 
                 if recommendations is None or recommendations.empty:
                     st.error("❌ No matching job profiles found in our indexed matrix.")
@@ -219,8 +216,9 @@ if uploaded_file is not None:
                         recommendations["skills"] = recommendations["skills"].astype(str)
 
                     # -------------------------------------------------------------
-                    # PLOTLY PIE CHART COLUMN ALIGNMENT MAP (FIXED)
+                    # PLOTLY PIE CHART COLUMN ALIGNMENT MAP (CLEAN VERSION)
                     # -------------------------------------------------------------
+                    # Find any descriptive title column available
                     possible_title_cols = ['job_title', 'Job Title', 'title', 'Role', 'position', 'Designation', 'designation', 'Category', 'category']
                     found_title_col = None
                     for col in possible_title_cols:
@@ -233,31 +231,23 @@ if uploaded_file is not None:
                     else:
                         titles_data = "Matching Position"
 
-                    # Explicitly seed every structural variant to satisfy ui.py line 174
+                    # Populate structural data variants directly to avoid Plotly KeyError issues
                     recommendations['job_title'] = titles_data
                     recommendations['Designation'] = titles_data
                     recommendations['designation'] = titles_data
                     recommendations['Category'] = titles_data
                     recommendations['category'] = titles_data
 
+                    # Deduplicate repeated titles for the pie chart display if broad labels exist
+                    if recommendations['Designation'].duplicated().any():
+                        recommendations['Designation'] = recommendations['Designation'] + " (Match " + recommendations.index.astype(str) + ")"
+                        recommendations['job_title'] = recommendations['Designation']
+
                     st.success("✅ Profile Analysis Matrix Evaluated!")
                     st.divider()
 
-                    # -------------------------------------------------------------
-                    # SAFE CRASH PROTECTION CALL
-                    # -------------------------------------------------------------
-                    try:
-                        show_job_boxes(recommendations)
-                    except Exception as ui_err:
-                        st.warning("⚠️ Recommendation layout chart bypassed due to structure adjustments. Displaying matching roles directly:")
-                        for idx, row in recommendations.iterrows():
-                            with st.container():
-                                st.markdown(f"### 💼 {row.get('job_title', 'Job Opening')}")
-                                if 'company' in row:
-                                    st.markdown(f"**🏢 Company:** {row['company']}")
-                                if 'location' in row:
-                                    st.markdown(f"**📍 Location:** {row['location']}")
-                                st.write("---")
+                    # Render original, beautiful interactive dashboard boxes from ui.py
+                    show_job_boxes(recommendations)
 
 # --------------------------------
 # Page Layout Footer Container
