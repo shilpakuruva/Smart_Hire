@@ -1,6 +1,34 @@
 import os
 import urllib.request
 
+# 1. Ensure all structural paths exist inside the Streamlit server container
+os.makedirs('models', exist_ok=True)
+os.makedirs('data/raw', exist_ok=True)
+os.makedirs('data/processed', exist_ok=True)
+
+# Function to safely fetch heavy storage dependencies from Google Drive
+def download_from_drive(file_id, save_path):
+    if not os.path.exists(save_path):
+        print(f"Downloading {save_path} from Google Drive...")
+        url = f"https://docs.google.com/uc?export=download&id={file_id}"
+        urllib.request.urlretrieve(url, save_path)
+        print(f"Successfully downloaded {save_path}!")
+
+# 2. Automatically download your model file
+download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
+
+# 3. Automatically download your updated dataset file using your new ID
+download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'data/processed/resume_processed.csv')
+
+
+
+
+
+
+
+import os
+import urllib.request
+
 # 1. Create target folders inside Streamlit's cloud container
 os.makedirs('models', exist_ok=True)
 os.makedirs('data', exist_ok=True)
