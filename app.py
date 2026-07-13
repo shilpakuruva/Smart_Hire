@@ -39,9 +39,14 @@ def download_from_drive(file_id, save_path):
                 st.error(f"Failed to fetch model asset: {save_path}. Ensure it is publicly shared.")
 
 # Download heavy structural pipeline dependencies
+# Download structural pipeline dependencies
 download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
 download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'data/processed/resume_processed.csv')
-download_from_drive('1-H_24SveG9l6bB6Zk8rY7j5p9_b67f_w', 'models/job_vectors.pkl')
+
+# --- UPDATED WITH YOUR EXACT FILE ID ---
+download_from_drive('1EpZInF_VCyE2kNK5C7exT28qs3t7JEF3', 'models/job_vectors.pkl')
+
+
 # -------------------------------------------------------------
 # NOW IMPORT THE CUSTOM RECOMENDATION MODULES SAFELY
 # -------------------------------------------------------------
