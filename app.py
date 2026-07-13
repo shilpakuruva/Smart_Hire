@@ -7,11 +7,17 @@ import urllib.request
 import pickle
 import pandas as pd
 
+
 # -------------------------------------------------------------
 # AUTOMATED DATA & MODEL DOWNLOAD PIPELINE 
 # -------------------------------------------------------------
 os.makedirs('models', exist_ok=True)
 os.makedirs('data/processed', exist_ok=True)
+
+# FORCE WIPE CORRUPTED TEMPORARY FILES IF THEY ARE EMPTY
+for bad_file in ['models/jobs_database.csv', 'models/job_vectors.pkl']:
+    if os.path.exists(bad_file) and os.path.getsize(bad_file) < 100:
+        os.remove(bad_file)
 
 def download_from_drive(file_id, save_path):
     if not os.path.exists(save_path):
@@ -25,8 +31,8 @@ def download_from_drive(file_id, save_path):
 # 1. Download your TF-IDF vectorizer model
 download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
 
-# 2. DOWNLOAD THE JOB DATASET (Make sure this File ID points to your naukri_processed.csv or linkedin_processed.csv on Drive!)
-download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'data/processed/job_processed.csv')
+# 2. DOWNLOAD THE JOB DATASET 
+download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'models/jobs_database.csv')
 
 # -------------------------------------------------------------
 # DYNAMIC MATRIX GENERATION (Bypasses Google Drive network freeze)
