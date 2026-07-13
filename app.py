@@ -13,7 +13,7 @@ import pandas as pd
 os.makedirs('models', exist_ok=True)
 os.makedirs('data/processed', exist_ok=True)
 
-# FORCE WIPE CORRUPTED TEMPORARY FILES IF THEY ARE EMPTY OR INVALID
+# Force-clear old empty file stubs so fresh data downloads
 for bad_file in ['models/jobs_database.csv', 'models/job_vectors.pkl']:
     if os.path.exists(bad_file) and os.path.getsize(bad_file) < 100:
         os.remove(bad_file)
@@ -30,7 +30,7 @@ def download_from_drive(file_id, save_path):
 # 1. Download your TF-IDF vectorizer model
 download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
 
-# 2. DOWNLOAD THE JOB DATASET (Saved exactly where utils/recommend.py looks for it!)
+# 2. Download the Job Openings database file matching recommend.py expectations
 download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'models/jobs_database.csv')
 
 # -------------------------------------------------------------
@@ -42,10 +42,9 @@ if not os.path.exists('models/job_vectors.pkl'):
             with open("models/tfidf_vectorizer.pkl", "rb") as f:
                 tfidf = pickle.load(f)
             
-            # Load from the corrected path
             df = pd.read_csv("models/jobs_database.csv")
             
-            # Smart scan for job text column names
+            # Dynamic matching text column finder
             possible_columns = ['job_description', 'description', 'cleaned_job', 'job_text', 'cleaned_resume', 'resume_text']
             text_column = None
             for col in possible_columns:
@@ -152,12 +151,7 @@ if uploaded_file is not None:
     # ===============================
     st.subheader("🧠 SmartHire AI Workflow")
     st.info("""
-📄 Resume Upload  
-            ➡  🧹 Resume Cleaning 
-             ➡  🛠 Skill Extraction  
-            ➡  📊 TF-IDF Vectorization  
-            ➡  🤖 Cosine Similarity Matching  
-            ➡  🎯 Top Job Recommendations
+📄 Resume Upload  ➡  🧹 Resume Cleaning  ➡  🛠 Skill Extraction  ➡  📊 TF-IDF Vectorization  ➡  🤖 Cosine Similarity Matching  ➡  🎯 Top Job Recommendations
 """)
 
     st.divider()
@@ -217,6 +211,7 @@ if uploaded_file is not None:
                 if recommendations is None or recommendations.empty:
                     st.error("❌ No matching job profiles found in our indexed matrix.")
                 else:
+                    # Sync skills field structure safely
                     if "skills" not in recommendations.columns:
                         formatted_string_skills = ", ".join(skills) if skills else ""
                         recommendations["skills"] = formatted_string_skills
@@ -224,25 +219,47 @@ if uploaded_file is not None:
                         recommendations["skills"] = recommendations["skills"].astype(str)
 
                     # -------------------------------------------------------------
-                    # PLOTLY PIE CHART COLUMN ALIGNMENT FIX
+                    # PLOTLY PIE CHART COLUMN ALIGNMENT MAP
                     # -------------------------------------------------------------
-                    possible_title_cols = ['job_title', 'Job Title', 'title', 'Role', 'position']
+                    possible_title_cols = ['job_title', 'Job Title', 'title', 'Role', 'position', 'Designation', 'designation', 'Category', 'category']
                     found_title_col = None
                     for col in possible_title_cols:
                         if col in recommendations.columns:
                             found_title_col = col
                             break
                     
-                    if found_title_col and found_title_col != 'job_title':
-                        recommendations['job_title'] = recommendations[found_title_col]
-                    elif 'job_title' not in recommendations.columns:
-                        recommendations['job_title'] = "Matching Position"
+                    if found_title_col:
+                        titles_data = recommendations[found_title_col]
+                    else:
+                        # Fallback query if no structured column pattern is discovered
+                        titles_data = "Matching Position"
+
+                    # Explicitly build structural alias tracks for plotly in ui.py
+                    recommendations['job_title'] = titles_data
+                    recommendations['Designation'] = titles_data
+                    recommendations['designation'] = titles_data
+                    recommendations['Category'] = titles_data
+                    recommendations['category'] = titles_data
 
                     st.success("✅ Profile Analysis Matrix Evaluated!")
                     st.divider()
 
-                    # Render top-level interactive pie chart and cards sequentially from ui.py
-                    show_job_boxes(recommendations)
+                    # -------------------------------------------------------------
+                    # SAFE CRASH PROTECTION CALL
+                    # -------------------------------------------------------------
+                    try:
+                        show_job_boxes(recommendations)
+                    except Exception as ui_err:
+                        # Fallback backup card display loop if Plotly charting engine encounters a structure mismatch inside ui.py
+                        st.warning("⚠️ Recommendation layout chart bypassed due to structure adjustments. Displaying matching roles directly:")
+                        for idx, row in recommendations.iterrows():
+                            with st.container():
+                                st.markdown(f"### 💼 {row.get('job_title', 'Job Opening')}")
+                                if 'company' in row:
+                                    st.markdown(f"**🏢 Company:** {row['company']}")
+                                if 'location' in row:
+                                    st.markdown(f"**📍 Location:** {row['location']}")
+                                st.write("---")
 
 # --------------------------------
 # Page Layout Footer Container
