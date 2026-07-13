@@ -5,17 +5,9 @@ import pdfplumber
 import plotly.express as px
 import re
 
-from ui import (
-    load_css,
-    show_header,
-    show_sidebar,
-    show_job_boxes
-)
-from utils.skill_extractor import extract_skills
-from utils.recommend import recommend_jobs
-
 # -------------------------------------------------------------
-# AUTOMATED DATA & MODEL DOWNLOAD PIPELINE
+# AUTOMATED DATA & MODEL DOWNLOAD PIPELINE 
+# (Must run BEFORE custom module imports to prevent FileNotFoundError)
 # -------------------------------------------------------------
 os.makedirs('models', exist_ok=True)
 os.makedirs('data/raw', exist_ok=True)
@@ -32,6 +24,18 @@ def download_from_drive(file_id, save_path):
 download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
 download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'data/processed/resume_processed.csv')
 download_from_drive('1-H_24SveG9l6bB6Zk8rY7j5p9_b67f_w', 'models/job_vectors.pkl')
+
+# -------------------------------------------------------------
+# NOW IMPORT THE CUSTOM RECOMENDATION MODULES SAFELY
+# -------------------------------------------------------------
+from ui import (
+    load_css,
+    show_header,
+    show_sidebar,
+    show_job_boxes
+)
+from utils.skill_extractor import extract_skills
+from utils.recommend import recommend_jobs
 
 
 # --------------------------------
@@ -108,12 +112,7 @@ if uploaded_file is not None:
     # ===============================
     st.subheader("🧠 SmartHire AI Workflow")
     st.info("""
-📄 Resume Upload  
-            ➡  🧹 Resume Cleaning  
-            ➡  🛠 Skill Extraction  
-            ➡  📊 TF-IDF Vectorization  
-            ➡  🤖 Cosine Similarity Matching 
-             ➡  🎯 Top Job Recommendations
+📄 Resume Upload  ➡  🧹 Resume Cleaning  ➡  🛠 Skill Extraction  ➡  📊 TF-IDF Vectorization  ➡  🤖 Cosine Similarity Matching  ➡  🎯 Top Job Recommendations
 """)
 
     st.divider()
@@ -177,7 +176,6 @@ if uploaded_file is not None:
                     # FIXED CRITICAL BUG: Format raw Python array into clean CSV string
                     # -------------------------------------------------------------
                     if "skills" not in recommendations.columns:
-                        # Join extracted list tokens with commas so ui.py breaks them up properly
                         formatted_string_skills = ", ".join(skills) if skills else ""
                         recommendations["skills"] = formatted_string_skills
                     else:
