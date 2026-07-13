@@ -219,7 +219,7 @@ if uploaded_file is not None:
                         recommendations["skills"] = recommendations["skills"].astype(str)
 
                     # -------------------------------------------------------------
-                    # PLOTLY PIE CHART COLUMN ALIGNMENT MAP
+                    # PLOTLY PIE CHART COLUMN ALIGNMENT MAP (FIXED)
                     # -------------------------------------------------------------
                     possible_title_cols = ['job_title', 'Job Title', 'title', 'Role', 'position', 'Designation', 'designation', 'Category', 'category']
                     found_title_col = None
@@ -231,10 +231,9 @@ if uploaded_file is not None:
                     if found_title_col:
                         titles_data = recommendations[found_title_col]
                     else:
-                        # Fallback query if no structured column pattern is discovered
                         titles_data = "Matching Position"
 
-                    # Explicitly build structural alias tracks for plotly in ui.py
+                    # Explicitly seed every structural variant to satisfy ui.py line 174
                     recommendations['job_title'] = titles_data
                     recommendations['Designation'] = titles_data
                     recommendations['designation'] = titles_data
@@ -250,7 +249,6 @@ if uploaded_file is not None:
                     try:
                         show_job_boxes(recommendations)
                     except Exception as ui_err:
-                        # Fallback backup card display loop if Plotly charting engine encounters a structure mismatch inside ui.py
                         st.warning("⚠️ Recommendation layout chart bypassed due to structure adjustments. Displaying matching roles directly:")
                         for idx, row in recommendations.iterrows():
                             with st.container():
