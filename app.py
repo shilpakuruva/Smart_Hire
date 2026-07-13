@@ -1,3 +1,28 @@
+import os
+import urllib.request
+
+# 1. Create target folders inside Streamlit's cloud container
+os.makedirs('models', exist_ok=True)
+os.makedirs('data', exist_ok=True)
+
+# Function to download files safely from Google Drive
+def download_from_drive(file_id, save_path):
+    if not os.path.exists(save_path):
+        print(f"Downloading {save_path} from Google Drive...")
+        url = f"https://docs.google.com/uc?export=download&id={file_id}"
+        urllib.request.urlretrieve(url, save_path)
+        print(f"Successfully downloaded {save_path}!")
+
+# 2. Automatically download tfidf_vectorizer.pkl using your ID
+download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
+
+# NOTE: If your app crashes because it needs 'job_vectors.pkl' or 'jobs_database.csv', 
+# copy their Google Drive IDs and add them below just like the one above!
+# download_from_drive('YOUR_JOB_VECTORS_ID_HERE', 'models/job_vectors.pkl')
+# download_from_drive('YOUR_DATABASE_CSV_ID_HERE', 'data/jobs_database.csv')
+
+
+
 from ui import (
     load_css,
     show_header,
