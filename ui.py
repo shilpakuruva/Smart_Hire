@@ -51,20 +51,6 @@ def load_css():
         background:#1d4ed8;
     }
 
-    /* Skill Badge Styling */
-    .skill-badge{
-        display:inline-block;
-        background:#dbeafe;
-        color:#2563eb;
-        padding:5px 12px;
-        margin:4px;
-        border-radius:15px;
-        font-size:12px;
-        font-weight:600;
-        white-space: normal; 
-        word-break: break-word;
-    }
-
     hr{
         border:1px solid #e5e7eb;
     }
@@ -161,7 +147,7 @@ def show_job_boxes(recommendations):
     st.subheader("🎯 Top Job Recommendations")
 
     # -----------------------------
-    # PIE CHART DISPLAY (FIXED TYPO HERE)
+    # PIE CHART DISPLAY
     # -----------------------------
     if not recommendations.empty:
         chart_data = recommendations.head(10)  
@@ -172,7 +158,7 @@ def show_job_boxes(recommendations):
             names='title', 
             title='Match Distribution Strength (Top Results)',
             hole=0.4, 
-            color_discrete_sequence=px.colors.sequential.Blues_r  # Fixed palette sequence typo!
+            color_discrete_sequence=px.colors.sequential.Blues_r  
         )
         
         fig.update_layout(
@@ -225,14 +211,19 @@ def show_job_boxes(recommendations):
         skill_list = list(dict.fromkeys(skill_list)) 
         skill_list = skill_list[:4]                  
 
-        # Create Badges
+        # -----------------------------
+        # Create Badges (Forced Inline CSS Styles to Fix Rendering)
+        # -----------------------------
+        badge_style = 'display:inline-block; background:#dbeafe; color:#2563eb; padding:5px 12px; margin:4px; border-radius:15px; font-size:12px; font-weight:600; white-space: normal; word-break: break-word;'
+        no_skill_style = 'display:inline-block; background:#f1f5f9; color:#64748b; padding:5px 12px; margin:4px; border-radius:15px; font-size:12px; font-weight:600;'
+
         if skill_list:
             badges = ""
             for skill in skill_list:
                 skill = html.escape(str(skill))
-                badges += f'<span class="skill-badge">{skill}</span>\n'
+                badges += f'<span style="{badge_style}">{skill}</span>\n'
         else:
-            badges = '<span class="skill-badge" style="background:#f1f5f9; color:#64748b;">No Skills Specified</span>'
+            badges = f'<span style="{no_skill_style}">No Skills Specified</span>'
 
         # Card UI Wrapper HTML
         with cols[i % 3]:
