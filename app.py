@@ -15,6 +15,7 @@ os.makedirs('data/processed', exist_ok=True)
 def download_from_drive(file_id, save_path):
     if not os.path.exists(save_path):
         print(f"Downloading {save_path} from Google Drive...")
+        gdown.download(id=file_id,output=save_path,quiet=False,fuzzy=True)
         # Large-file confirmation workaround for Google Drive
         url = f"https://docs.google.com/uc?export=download&id={file_id}"
         request = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
