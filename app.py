@@ -1,55 +1,52 @@
 import os
-import urllib.request
 import streamlit as st
 import pdfplumber
 import plotly.express as px
 import re
+import gdown
+import pickle
+import pandas as pd
 
 # -------------------------------------------------------------
 # AUTOMATED DATA & MODEL DOWNLOAD PIPELINE 
 # -------------------------------------------------------------
 os.makedirs('models', exist_ok=True)
-os.makedirs('data/raw', exist_ok=True)
 os.makedirs('data/processed', exist_ok=True)
 
 def download_from_drive(file_id, save_path):
     if not os.path.exists(save_path):
         print(f"Downloading {save_path} from Google Drive...")
-        gdown.download(id=file_id,output=save_path,quiet=False,fuzzy=True)
-        # Large-file confirmation workaround for Google Drive
-        url = f"https://docs.google.com/uc?export=download&id={file_id}"
-        request = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        
-        try:
-            with urllib.request.urlopen(request) as response:
-                html = response.read().decode('utf-8', errors='ignore')
-                # If Google prompts a virus warning page, grab the confirmation code
-                if "confirm=" in html:
-                    confirm_code = html.split("confirm=")[1].split("&")[0]
-                    url = f"https://docs.google.com/uc?export=download&confirm={confirm_code}&id={file_id}"
-            
-            # Download the final destination file safely
-            urllib.request.urlretrieve(url, save_path)
-            print(f"Successfully downloaded {save_path}!")
-        except Exception as e:
-            print(f"Error downloading {save_path}: {e}")
-            # Fallback to direct download attempt if token checking fails
-            try:
-                urllib.request.urlretrieve(f"https://docs.google.com/uc?export=download&id={file_id}", save_path)
-            except Exception as final_err:
-                st.error(f"Failed to fetch model asset: {save_path}. Ensure it is publicly shared.")
+        gdown.download(id=file_id, output=save_path, quiet=False, fuzzy=True)
 
-# Download heavy structural pipeline dependencies
-# Download structural pipeline dependencies
+# Download the vectorizer and processed dataset
 download_from_drive('1FmmM9IevbDKrJYMD-9iWqU2vQAY4NkUX', 'models/tfidf_vectorizer.pkl')
 download_from_drive('1_RUXvP2ynj2gYsmAnmBGuk5Ba9ZO7-oR', 'data/processed/resume_processed.csv')
 
-# --- UPDATED WITH YOUR EXACT FILE ID ---
-download_from_drive('1EpZInF_VCyE2kNK5C7exT28qs3t7JEF3', 'models/job_vectors.pkl')
-
+# -------------------------------------------------------------
+# DYNAMIC MATRIX GENERATION (Bypasses Google Drive network block)
+# -------------------------------------------------------------
+if not os.path.exists('models/job_vectors.pkl'):
+    with st.spinner("Initializing AI vector systems on first boot..."):
+        try:
+            # Load assets safely
+            with open("models/tfidf_vectorizer.pkl", "rb") as f:
+                tfidf = pickle.load(f)
+            df = pd.read_csv("data/processed/resume_processed.csv")
+            
+            # Ensure text columns are clean string formatting
+            df['cleaned_resume'] = df['cleaned_resume'].fillna("").astype(str)
+            
+            # Generate vectors instantly on the server
+            job_vectors = tfidf.transform(df['cleaned_resume'])
+            
+            # Save it so it never has to run again
+            with open("models/job_vectors.pkl", "wb") as f:
+                pickle.load = pickle.dump(job_vectors, f)
+        except Exception as e:
+            st.error(f"Error creating local vector matrix: {e}")
 
 # -------------------------------------------------------------
-# NOW IMPORT THE CUSTOM RECOMENDATION MODULES SAFELY
+# NOW IMPORT THE CUSTOM RECOMMENDATION MODULES SAFELY
 # -------------------------------------------------------------
 from ui import (
     load_css,
