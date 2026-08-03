@@ -13,8 +13,17 @@ def load_css():
         background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%) !important;
     }
 
-    /* Force global text readability against dark background (Fixes legend & label visibility) */
-    h1, h2, h3, h4, h5, h6, p, span, label, .js-plotly-plot .plotly text {
+    /* Force global text readability */
+    h1, h2, h3, h4, h5, h6, p, span, label {
+        color: #f8fafc !important;
+    }
+
+    /* Target Plotly SVG Chart Legends and Labels Directly */
+    .js-plotly-plot .plotly .legendtext, 
+    .js-plotly-plot .plotly .g-gtitle text, 
+    .js-plotly-plot .plotly .slicetext,
+    .js-plotly-plot .plotly text {
+        fill: #f8fafc !important;
         color: #f8fafc !important;
     }
 
@@ -153,8 +162,6 @@ def load_css():
     }
     </style>
     """, unsafe_allow_html=True)
-
-
 # -----------------------------
 # HEADER
 # -----------------------------
