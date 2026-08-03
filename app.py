@@ -67,7 +67,11 @@ from ui import (
     load_css,
     show_header,
     show_sidebar,
-    show_job_boxes
+    show_job_boxes,
+    show_cards_matched,
+    show_skills_learn,
+    show_job_locations
+
 )
 from utils.skill_extractor import extract_skills
 from utils.recommend import recommend_jobs
@@ -84,6 +88,20 @@ st.set_page_config(
 load_css()
 show_header()
 show_sidebar()
+# -------------------------------------------------------------
+# NAVIGATION ROUTER (Handles sidebar page switches)
+# -------------------------------------------------------------
+current_page = st.session_state.get("page", "🏠 Dashboard")
+
+if current_page == "💼 Cards Matched":
+    show_cards_matched()
+    st.stop()
+elif current_page == "📚 Skills Learn":
+    show_skills_learn()
+    st.stop()
+elif current_page == "📍 Job Locations":
+    show_job_locations()
+    st.stop()
 
 def clean_text(text):
     text = text.lower()
