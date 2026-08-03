@@ -5,7 +5,154 @@ import streamlit as st
 # -----------------------------
 # CSS CONFIGURATION
 # -----------------------------
+def load_css():
+    st.markdown("""
+    <style>
+    /* Vibrant App Background */
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%) !important;
+    }
 
+    /* Force global text readability against dark background (Fixes legend & label visibility) */
+    h1, h2, h3, h4, h5, h6, p, span, label, .js-plotly-plot .plotly text {
+        color: #f8fafc !important;
+    }
+
+    /* Header Main Title Accent */
+    .main-title {
+        text-align: center;
+        font-size: 42px;
+        font-weight: bold;
+        background: linear-gradient(90deg, #60a5fa, #c084fc, #f472b6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0px;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: #cbd5e1 !important;
+        font-size: 18px;
+        margin-bottom: 30px;
+    }
+
+    /* Sidebar Base Container */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #070a13 0%, #0d1322 100%) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    section[data-testid="stSidebar"] * {
+        color: #f8fafc !important;
+    }
+
+    /* Modern Radio Group Layout */
+    div[data-testid="stSidebar"] div[role="radiogroup"] {
+        gap: 6px;
+    }
+
+    /* Sidebar Radio Options Styling */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 8px 14px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        width: 100%;
+    }
+
+    /* Hover State for Unselected Options */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+        background: rgba(99, 102, 241, 0.12);
+        border-color: rgba(99, 102, 241, 0.4);
+        transform: translateX(4px);
+    }
+
+    /* Selected Radio State (Glowing Active Look) */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.35) 0%, rgba(168, 85, 247, 0.35) 100%) !important;
+        border: 1px solid rgba(168, 85, 247, 0.7) !important;
+        box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Hide native radio small dot inputs for a clean button-chip layout */
+    div[data-testid="stSidebar"] div[role="radiogroup"] input[type="radio"] {
+        display: none;
+    }
+
+    /* Text Alignment inside Sidebar Options */
+    div[data-testid="stSidebar"] div[role="radiogroup"] div[data-testid="stMarkdownContainer"] p {
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+    }
+
+    /* Primary Action Buttons */
+    .stButton button {
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+        color: white !important;
+        border-radius: 14px;
+        height: 45px;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stButton button:hover {
+        background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(168, 85, 247, 0.6);
+    }
+
+    /* Target and Overhaul Streamlit's Native File Uploader (Removes the White Box) */
+    [data-testid="stFileUploader"] {
+        background-color: rgba(30, 41, 59, 0.85) !important;
+        border: 2px dashed #6366f1 !important;
+        border-radius: 20px !important;
+        padding: 20px !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
+    }
+    
+    [data-testid="stFileUploader"] section {
+        background-color: transparent !important;
+    }
+
+    [data-testid="stFileUploader"] section div, 
+    [data-testid="stFileUploader"] span, 
+    [data-testid="stFileUploader"] small {
+        color: #cbd5e1 !important;
+    }
+
+    [data-testid="stFileUploader"] button {
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+        color: white !important;
+        border-radius: 10px !important;
+        border: none !important;
+    }
+
+    /* Colorful Skill Badge Styling */
+    .skill-badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.12);
+        color: #93c5fd !important;
+        padding: 5px 12px;
+        margin: 4px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid rgba(147, 197, 253, 0.3);
+        backdrop-filter: blur(5px);
+        white-space: normal; 
+        word-break: break-word;
+    }
+
+    hr {
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 
 # -----------------------------
