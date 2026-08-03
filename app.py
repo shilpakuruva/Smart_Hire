@@ -71,7 +71,6 @@ from ui import (
     show_cards_matched,
     show_skills_learn,
     show_job_locations
-
 )
 from utils.skill_extractor import extract_skills
 from utils.recommend import recommend_jobs
@@ -88,6 +87,11 @@ st.set_page_config(
 load_css()
 show_header()
 show_sidebar()
+
+# Initialize history session state safely
+if "matched_history" not in st.session_state:
+    st.session_state["matched_history"] = []
+
 # -------------------------------------------------------------
 # NAVIGATION ROUTER (Handles sidebar page switches)
 # -------------------------------------------------------------
@@ -110,7 +114,8 @@ def clean_text(text):
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
-uploaded_file = st.file_uploader("", type=["pdf"])
+# Fixed file uploader accessibility warning by adding label and hiding it cleanly
+uploaded_file = st.file_uploader("Upload Resume PDF", type=["pdf"], label_visibility="collapsed")
 
 if uploaded_file is not None:
     st.success("✅ Resume Uploaded Successfully!")
@@ -167,7 +172,7 @@ if uploaded_file is not None:
         st.text_area("Cleaned Text", clean_resume, height=200, label_visibility="collapsed")
 
     with tab3:
-        if st.button("🚀 Run System Analysis & Find Positions", use_container_width=True):
+        if st.button("🚀 Run System Analysis & Find Positions", width="stretch"):
             with st.spinner("Analyzing profile patterns..."):
                 recommendations = recommend_jobs(clean_resume, top_n=50)
 
@@ -210,6 +215,13 @@ if uploaded_file is not None:
                     st.success("✅ Profile Analysis Matrix Evaluated!")
                     st.divider()
 
+                    # Save match snapshot to session state history
+                    st.session_state["matched_history"].append({
+                        "filename": uploaded_file.name if uploaded_file else "Uploaded Resume",
+                        "top_match": base_titles[0] if base_titles else "N/A",
+                        "skills_count": len(skills)
+                    })
+
                     try:
                         show_job_boxes(recommendations)
                     except Exception as ui_err:
@@ -222,7 +234,7 @@ if uploaded_file is not None:
                             title="🎯 Recommended Domain Alignment Matrix",
                             color_discrete_sequence=px.colors.sequential.Blues_r
                         )
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width="stretch")
                         st.divider()
                         
                         report_rows = []
@@ -256,12 +268,12 @@ if uploaded_file is not None:
                                 with col_right:
                                     st.metric(label="🎯 AI Fit Match", value=f"{match_score}%")
                                     
-                            report_rows.append({
-                                "Rank": rank_idx + 1,
-                                "Job Track": category_name,
-                                "Match Score": f"{match_score}%",
-                                "Missing Skills Recommendation": ", ".join(missing_skills) if missing_skills else "None! Profile aligned."
-                            })
+                                report_rows.append({
+                                    "Rank": rank_idx + 1,
+                                    "Job Track": category_name,
+                                    "Match Score": f"{match_score}%",
+                                    "Missing Skills Recommendation": ", ".join(missing_skills) if missing_skills else "None! Profile aligned."
+                                })
                         
                         st.divider()
                         report_df = pd.DataFrame(report_rows)
@@ -272,7 +284,7 @@ if uploaded_file is not None:
                             data=csv_data,
                             file_name="SmartHire_AI_Job_Matches.csv",
                             mime="text/csv",
-                            use_container_width=True
+                            width="stretch"
                         )
 
 # Footer
